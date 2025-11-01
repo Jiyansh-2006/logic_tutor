@@ -3,9 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Digital Logic Tutor</title>
-    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
-    <!-- Load Inter font --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <title>Digital Logic Tutor (Gemini API)</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -46,25 +48,193 @@
             flex-direction: column;
             gap: 0.5rem;
         }
+        /* Circuit animation container */
+        .circuit-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            margin: 0 auto;
+            background: #1f2937;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        /* Circuit components */
+        .gate {
+            position: absolute;
+            width: 60px;
+            height: 40px;
+            background: #374151;
+            border: 2px solid #4f46e5;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            z-index: 5;
+        }
+        .wire {
+            position: absolute;
+            height: 2px;
+            background: #6b7280;
+            transform-origin: left center;
+            z-index: 1;
+        }
+        .wire.active {
+            background: #10b981;
+        }
+        .input-node, .output-node {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f59e0b;
+            z-index: 6;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            color: #1f2937;
+            font-weight: bold;
+        }
+        .signal {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+            z-index: 10;
+        }
+        /* Fade in animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+        /* Pulse animation for active elements */
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .pulse {
+            animation: pulse 2s infinite;
+        }
+        /* Typing indicator animation */
+        .typing-indicator {
+            display: inline-block;
+            position: relative;
+            width: 60px;
+            height: 20px;
+        }
+        .typing-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #9ca3af;
+            position: absolute;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(1) {
+            left: 0;
+            animation-delay: -0.32s;
+        }
+        .typing-dot:nth-child(2) {
+            left: 16px;
+            animation-delay: -0.16s;
+        }
+        .typing-dot:nth-child(3) {
+            left: 32px;
+        }
+        @keyframes typing {
+            0%, 80%, 100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        /* Circuit label */
+        .circuit-label {
+            position: absolute;
+            font-size: 12px;
+            color: #9ca3af;
+            z-index: 10;
+        }
+        /* Truth table styling */
+        .truth-table {
+            position: absolute;
+            background: rgba(31, 41, 55, 0.8);
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 11px;
+            color: white;
+            z-index: 10;
+            border: 1px solid #4b5563;
+        }
+        .truth-table table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        .truth-table th, .truth-table td {
+            padding: 2px 4px;
+            text-align: center;
+            border: 1px solid #6b7280;
+        }
+        .truth-table th {
+            background: #4b5563;
+        }
+        .truth-table .highlight {
+            background: #10b981;
+            color: #1f2937;
+            font-weight: bold;
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
 
-    <!-- Main Chat Container --><div class="w-full max-w-3xl h-[90vh] bg-gray-800 rounded-lg shadow-2xl flex flex-col">
+    <!-- Circuit Animation Banner (Outside Chatbox) -->
+    <div class="w-full max-w-3xl mb-6">
+        <div class="bg-gray-800 rounded-lg p-4 shadow-lg">
+            <h2 class="text-lg font-semibold text-center mb-2">Logic Gate Demonstrations</h2>
+            <div class="circuit-container" id="circuit-demo">
+                <!-- Circuit elements will be dynamically added here -->
+            </div>
+            <div class="flex justify-center mt-3">
+                <button id="prev-circuit" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-l-lg transition-colors">Previous</button>
+                <span id="circuit-name" class="bg-gray-800 px-4 py-1 text-sm">AND Gate</span>
+                <button id="next-circuit" class="bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded-r-lg transition-colors">Next</button>
+            </div>
+        </div>
+    </div>
 
-        <!-- Header --><header class="bg-gray-700 p-4 rounded-t-lg shadow-md">
+    <!-- Main Chat Container -->
+    <div class="w-full max-w-3xl h-[70vh] bg-gray-800 rounded-lg shadow-2xl flex flex-col">
+
+        <!-- Header -->
+        <header class="bg-gray-700 p-4 rounded-t-lg shadow-md">
             <h1 class="text-xl font-bold text-center">Digital Logic Tutor</h1>
+            <p class="text-sm text-gray-300 text-center">Powered by Gemini</p>
         </header>
 
-        <!-- Chat Log --><main id="chat-log" class="flex-grow p-4 space-y-4 overflow-y-auto">
-            <!-- Initial Bot Message --><div class="flex">
+        <!-- Chat Log -->
+        <main id="chat-log" class="flex-grow p-4 space-y-4 overflow-y-auto">
+            <!-- Initial Bot Message -->
+            <div class="flex">
                 <div class="bg-gray-700 text-white p-3 rounded-lg max-w-[80%]">
                     <p>Hello! I'm your digital logic assistant. Please ask a question. You can also upload an image of a circuit diagram or truth table for analysis.</p>
                 </div>
             </div>
         </main>
 
-        <!-- Image Preview Area --><div id="image-preview-container" class="p-2 px-4 border-t border-b border-gray-700 hidden items-center justify-between">
+        <!-- Image Preview Area -->
+        <div id="image-preview-container" class="p-2 px-4 border-t border-b border-gray-700 hidden items-center justify-between">
             <div class="flex items-center gap-2">
                 <img id="image-preview" src="" alt="Image preview" class="w-12 h-12 object-cover rounded-md border border-gray-600">
                 <span id="image-preview-name" class="text-sm text-gray-400"></span>
@@ -76,17 +246,21 @@
             </button>
         </div>
 
-        <!-- Input Area --><footer class="flex-shrink-0 p-4 border-t border-gray-700 flex items-center space-x-3">
-            <!-- Image Upload Button --><label for="image-upload" class="flex-shrink-0 p-2 text-gray-400 hover:text-white cursor-pointer rounded-full hover:bg-gray-700" aria-label="Upload image">
+        <!-- Input Area -->
+        <footer class="flex-shrink-0 p-4 border-t border-gray-700 flex items-center space-x-3">
+            <!-- Image Upload Button -->
+            <label for="image-upload" class="flex-shrink-0 p-2 text-gray-400 hover:text-white cursor-pointer rounded-full hover:bg-gray-700" aria-label="Upload image">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                 </svg>
             </label>
             <input type="file" id="image-upload" accept="image/*" class="hidden">
 
-            <!-- Text Input --><input type="text" id="user-prompt" class="flex-grow bg-gray-700 text-white rounded-full px-4 py-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ask about your circuit or truth table...">
+            <!-- Text Input -->
+            <input type="text" id="user-prompt" class="flex-grow bg-gray-700 text-white rounded-full px-4 py-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ask about your circuit or truth table...">
 
-            <!-- Send Button / Loading Spinner --><button id="send-button" class="flex-shrink-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+            <!-- Send Button / Loading Spinner -->
+            <button id="send-button" class="flex-shrink-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
@@ -106,6 +280,10 @@
         const imagePreviewName = document.getElementById('image-preview-name');
         const removeImageBtn = document.getElementById('remove-image-btn');
         const loadingSpinner = document.getElementById('loading-spinner');
+        const circuitDemo = document.getElementById('circuit-demo');
+        const circuitName = document.getElementById('circuit-name');
+        const prevCircuitBtn = document.getElementById('prev-circuit');
+        const nextCircuitBtn = document.getElementById('next-circuit');
 
         // --- API & State ---
         // IMPORTANT: Leave apiKey as "" - it will be handled by the environment
@@ -115,6 +293,19 @@
         let currentImageBase64 = null;
         let currentImageMimeType = null;
         let isLoading = false;
+        let circuitAnimationInterval = null;
+        let currentCircuitIndex = 0;
+        
+        // Circuit definitions
+        const circuits = [
+            { name: "AND Gate", type: "AND" },
+            { name: "OR Gate", type: "OR" },
+            { name: "XOR Gate", type: "XOR" },
+            { name: "NOT Gate", type: "NOT" },
+            { name: "NAND Gate", type: "NAND" },
+            { name: "NOR Gate", type: "NOR" },
+            { name: "Multiplexer", type: "MUX" }
+        ];
 
         // --- System Instruction for Analysis Model ---
         const systemPrompt = `You are an expert in digital electronics and logic design. Your primary goal is to act as a digital logic tutor.
@@ -181,7 +372,6 @@ A multiplexer (MUX) is a fundamental component in digital electronics, often ref
 * Control: The selection is controlled by a separate set of "select" inputs. For 'n' select lines, a MUX can choose from up to 2^n input lines.
 * Analogy: Think of it like a digital switch that directs one of many data paths to a single destination.`;
 
-
         // --- Event Listeners ---
         sendButton.addEventListener('click', handleSend);
         userPrompt.addEventListener('keyup', (e) => {
@@ -189,6 +379,11 @@ A multiplexer (MUX) is a fundamental component in digital electronics, often ref
         });
         imageUpload.addEventListener('change', handleImageUpload);
         removeImageBtn.addEventListener('click', removeImage);
+        prevCircuitBtn.addEventListener('click', showPreviousCircuit);
+        nextCircuitBtn.addEventListener('click', showNextCircuit);
+
+        // Initialize circuit animation
+        initializeCircuitAnimation();
 
         // --- Core Functions ---
 
@@ -328,6 +523,1020 @@ A multiplexer (MUX) is a fundamental component in digital electronics, often ref
             }
         }
 
+        // --- Circuit Animation Functions ---
+
+        /**
+         * Initializes the circuit animation
+         */
+        function initializeCircuitAnimation() {
+            showCircuit(currentCircuitIndex);
+        }
+
+        /**
+         * Shows the previous circuit
+         */
+        function showPreviousCircuit() {
+            currentCircuitIndex = (currentCircuitIndex - 1 + circuits.length) % circuits.length;
+            showCircuit(currentCircuitIndex);
+        }
+
+        /**
+         * Shows the next circuit
+         */
+        function showNextCircuit() {
+            currentCircuitIndex = (currentCircuitIndex + 1) % circuits.length;
+            showCircuit(currentCircuitIndex);
+        }
+
+        /**
+         * Shows a specific circuit
+         */
+        function showCircuit(index) {
+            // Clear any existing animation
+            if (circuitAnimationInterval) {
+                clearInterval(circuitAnimationInterval);
+                circuitAnimationInterval = null;
+            }
+            
+            // Clear the circuit container
+            circuitDemo.innerHTML = '';
+            circuitName.textContent = circuits[index].name;
+            
+            // Create the circuit based on type
+            switch(circuits[index].type) {
+                case "AND":
+                    createANDGateAnimation();
+                    break;
+                case "OR":
+                    createORGateAnimation();
+                    break;
+                case "XOR":
+                    createXORGateAnimation();
+                    break;
+                case "NOT":
+                    createNOTGateAnimation();
+                    break;
+                case "NAND":
+                    createNANDGateAnimation();
+                    break;
+                case "NOR":
+                    createNORGateAnimation();
+                    break;
+                case "MUX":
+                    createMultiplexerAnimation();
+                    break;
+            }
+        }
+
+        /**
+         * Creates an AND gate animation
+         */
+        function createANDGateAnimation() {
+            // Create input nodes
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '70px';
+            inputA.textContent = 'A';
+            
+            const inputB = document.createElement('div');
+            inputB.className = 'input-node';
+            inputB.style.left = '20px';
+            inputB.style.top = '130px';
+            inputB.textContent = 'B';
+            
+            // Create AND gate
+            const andGate = document.createElement('div');
+            andGate.className = 'gate';
+            andGate.style.left = '100px';
+            andGate.style.top = '80px';
+            andGate.textContent = 'AND';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireA = document.createElement('div');
+            wireA.className = 'wire';
+            wireA.style.left = '32px';
+            wireA.style.top = '76px';
+            wireA.style.width = '68px';
+            wireA.style.transform = 'rotate(0deg)';
+            
+            const wireB = document.createElement('div');
+            wireB.className = 'wire';
+            wireB.style.left = '32px';
+            wireB.style.top = '136px';
+            wireB.style.width = '68px';
+            wireB.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>B</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>1</td><td>0</td></tr>
+                    <tr id="tt-row-2"><td>1</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-3"><td>1</td><td>1</td><td>1</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(inputB);
+            circuitDemo.appendChild(andGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireA);
+            circuitDemo.appendChild(wireB);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireA.classList.remove('active');
+                wireB.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0, B=0
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 1) { // A=0, B=1
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 2) { // A=1, B=0
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 0
+                } else { // A=1, B=1
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                }
+                
+                signalState = (signalState + 1) % 4;
+            }, 2000);
+        }
+
+        /**
+         * Creates an OR gate animation
+         */
+        function createORGateAnimation() {
+            // Create input nodes
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '70px';
+            inputA.textContent = 'A';
+            
+            const inputB = document.createElement('div');
+            inputB.className = 'input-node';
+            inputB.style.left = '20px';
+            inputB.style.top = '130px';
+            inputB.textContent = 'B';
+            
+            // Create OR gate
+            const orGate = document.createElement('div');
+            orGate.className = 'gate';
+            orGate.style.left = '100px';
+            orGate.style.top = '80px';
+            orGate.textContent = 'OR';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireA = document.createElement('div');
+            wireA.className = 'wire';
+            wireA.style.left = '32px';
+            wireA.style.top = '76px';
+            wireA.style.width = '68px';
+            wireA.style.transform = 'rotate(0deg)';
+            
+            const wireB = document.createElement('div');
+            wireB.className = 'wire';
+            wireB.style.left = '32px';
+            wireB.style.top = '136px';
+            wireB.style.width = '68px';
+            wireB.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>B</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>1</td><td>1</td></tr>
+                    <tr id="tt-row-2"><td>1</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-3"><td>1</td><td>1</td><td>1</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(inputB);
+            circuitDemo.appendChild(orGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireA);
+            circuitDemo.appendChild(wireB);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireA.classList.remove('active');
+                wireB.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0, B=0
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 1) { // A=0, B=1
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 2) { // A=1, B=0
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else { // A=1, B=1
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                }
+                
+                signalState = (signalState + 1) % 4;
+            }, 2000);
+        }
+
+        /**
+         * Creates a XOR gate animation
+         */
+        function createXORGateAnimation() {
+            // Create input nodes
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '70px';
+            inputA.textContent = 'A';
+            
+            const inputB = document.createElement('div');
+            inputB.className = 'input-node';
+            inputB.style.left = '20px';
+            inputB.style.top = '130px';
+            inputB.textContent = 'B';
+            
+            // Create XOR gate
+            const xorGate = document.createElement('div');
+            xorGate.className = 'gate';
+            xorGate.style.left = '100px';
+            xorGate.style.top = '80px';
+            xorGate.textContent = 'XOR';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireA = document.createElement('div');
+            wireA.className = 'wire';
+            wireA.style.left = '32px';
+            wireA.style.top = '76px';
+            wireA.style.width = '68px';
+            wireA.style.transform = 'rotate(0deg)';
+            
+            const wireB = document.createElement('div');
+            wireB.className = 'wire';
+            wireB.style.left = '32px';
+            wireB.style.top = '136px';
+            wireB.style.width = '68px';
+            wireB.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>B</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>1</td><td>1</td></tr>
+                    <tr id="tt-row-2"><td>1</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-3"><td>1</td><td>1</td><td>0</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(inputB);
+            circuitDemo.appendChild(xorGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireA);
+            circuitDemo.appendChild(wireB);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireA.classList.remove('active');
+                wireB.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0, B=0
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 1) { // A=0, B=1
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 2) { // A=1, B=0
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else { // A=1, B=1
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 0
+                }
+                
+                signalState = (signalState + 1) % 4;
+            }, 2000);
+        }
+
+        /**
+         * Creates a NOT gate animation
+         */
+        function createNOTGateAnimation() {
+            // Create input node
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '100px';
+            inputA.textContent = 'A';
+            
+            // Create NOT gate
+            const notGate = document.createElement('div');
+            notGate.className = 'gate';
+            notGate.style.left = '100px';
+            notGate.style.top = '90px';
+            notGate.textContent = 'NOT';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireIn = document.createElement('div');
+            wireIn.className = 'wire';
+            wireIn.style.left = '32px';
+            wireIn.style.top = '106px';
+            wireIn.style.width = '68px';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-1"><td>1</td><td>0</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(notGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireIn);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireIn.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 2; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0
+                    createSignal(32, 106, 68, 0, 0, wireIn);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else { // A=1
+                    createSignal(32, 106, 68, 0, 1, wireIn);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 0
+                }
+                
+                signalState = (signalState + 1) % 2;
+            }, 2000);
+        }
+
+        /**
+         * Creates a NAND gate animation
+         */
+        function createNANDGateAnimation() {
+            // Create input nodes
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '70px';
+            inputA.textContent = 'A';
+            
+            const inputB = document.createElement('div');
+            inputB.className = 'input-node';
+            inputB.style.left = '20px';
+            inputB.style.top = '130px';
+            inputB.textContent = 'B';
+            
+            // Create NAND gate
+            const nandGate = document.createElement('div');
+            nandGate.className = 'gate';
+            nandGate.style.left = '100px';
+            nandGate.style.top = '80px';
+            nandGate.textContent = 'NAND';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireA = document.createElement('div');
+            wireA.className = 'wire';
+            wireA.style.left = '32px';
+            wireA.style.top = '76px';
+            wireA.style.width = '68px';
+            wireA.style.transform = 'rotate(0deg)';
+            
+            const wireB = document.createElement('div');
+            wireB.className = 'wire';
+            wireB.style.left = '32px';
+            wireB.style.top = '136px';
+            wireB.style.width = '68px';
+            wireB.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>B</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>1</td><td>1</td></tr>
+                    <tr id="tt-row-2"><td>1</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-3"><td>1</td><td>1</td><td>0</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(inputB);
+            circuitDemo.appendChild(nandGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireA);
+            circuitDemo.appendChild(wireB);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireA.classList.remove('active');
+                wireB.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0, B=0
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 1) { // A=0, B=1
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 2) { // A=1, B=0
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else { // A=1, B=1
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 0
+                }
+                
+                signalState = (signalState + 1) % 4;
+            }, 2000);
+        }
+
+        /**
+         * Creates a NOR gate animation
+         */
+        function createNORGateAnimation() {
+            // Create input nodes
+            const inputA = document.createElement('div');
+            inputA.className = 'input-node';
+            inputA.style.left = '20px';
+            inputA.style.top = '70px';
+            inputA.textContent = 'A';
+            
+            const inputB = document.createElement('div');
+            inputB.className = 'input-node';
+            inputB.style.left = '20px';
+            inputB.style.top = '130px';
+            inputB.textContent = 'B';
+            
+            // Create NOR gate
+            const norGate = document.createElement('div');
+            norGate.className = 'gate';
+            norGate.style.left = '100px';
+            norGate.style.top = '80px';
+            norGate.textContent = 'NOR';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wireA = document.createElement('div');
+            wireA.className = 'wire';
+            wireA.style.left = '32px';
+            wireA.style.top = '76px';
+            wireA.style.width = '68px';
+            wireA.style.transform = 'rotate(0deg)';
+            
+            const wireB = document.createElement('div');
+            wireB.className = 'wire';
+            wireB.style.left = '32px';
+            wireB.style.top = '136px';
+            wireB.style.width = '68px';
+            wireB.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>A</th><th>B</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>1</td><td>0</td></tr>
+                    <tr id="tt-row-2"><td>1</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-3"><td>1</td><td>1</td><td>0</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(inputA);
+            circuitDemo.appendChild(inputB);
+            circuitDemo.appendChild(norGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wireA);
+            circuitDemo.appendChild(wireB);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wireA.classList.remove('active');
+                wireB.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 4; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // A=0, B=0
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 1) { // A=0, B=1
+                    createSignal(32, 76, 68, 0, 0, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 2) { // A=1, B=0
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 0, wireB);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 0
+                } else { // A=1, B=1
+                    createSignal(32, 76, 68, 0, 1, wireA);
+                    createSignal(32, 136, 68, 0, 1, wireB);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 0
+                }
+                
+                signalState = (signalState + 1) % 4;
+            }, 2000);
+        }
+
+        /**
+         * Creates a multiplexer animation
+         */
+        function createMultiplexerAnimation() {
+            // Create input nodes
+            const input0 = document.createElement('div');
+            input0.className = 'input-node';
+            input0.style.left = '20px';
+            input0.style.top = '60px';
+            input0.textContent = 'I0';
+            
+            const input1 = document.createElement('div');
+            input1.className = 'input-node';
+            input1.style.left = '20px';
+            input1.style.top = '100px';
+            input1.textContent = 'I1';
+            
+            const select = document.createElement('div');
+            select.className = 'input-node';
+            select.style.left = '20px';
+            select.style.top = '140px';
+            select.textContent = 'S';
+            
+            // Create MUX gate
+            const muxGate = document.createElement('div');
+            muxGate.className = 'gate';
+            muxGate.style.left = '100px';
+            muxGate.style.top = '80px';
+            muxGate.textContent = 'MUX';
+            
+            // Create output node
+            const output = document.createElement('div');
+            output.className = 'output-node';
+            output.style.left = '280px';
+            output.style.top = '100px';
+            output.textContent = 'F';
+            
+            // Create wires
+            const wire0 = document.createElement('div');
+            wire0.className = 'wire';
+            wire0.style.left = '32px';
+            wire0.style.top = '66px';
+            wire0.style.width = '68px';
+            wire0.style.transform = 'rotate(0deg)';
+            
+            const wire1 = document.createElement('div');
+            wire1.className = 'wire';
+            wire1.style.left = '32px';
+            wire1.style.top = '106px';
+            wire1.style.width = '68px';
+            wire1.style.transform = 'rotate(0deg)';
+            
+            const wireS = document.createElement('div');
+            wireS.className = 'wire';
+            wireS.style.left = '32px';
+            wireS.style.top = '146px';
+            wireS.style.width = '68px';
+            wireS.style.transform = 'rotate(0deg)';
+            
+            const wireOut = document.createElement('div');
+            wireOut.className = 'wire';
+            wireOut.style.left = '160px';
+            wireOut.style.top = '106px';
+            wireOut.style.width = '120px';
+            wireOut.style.transform = 'rotate(0deg)';
+            
+            // Add truth table
+            const truthTable = document.createElement('div');
+            truthTable.className = 'truth-table';
+            truthTable.style.left = '350px';
+            truthTable.style.top = '30px';
+            truthTable.innerHTML = `
+                <table>
+                    <tr><th>S</th><th>I0</th><th>I1</th><th>F</th></tr>
+                    <tr id="tt-row-0"><td>0</td><td>0</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-1"><td>0</td><td>0</td><td>1</td><td>0</td></tr>
+                    <tr id="tt-row-2"><td>0</td><td>1</td><td>0</td><td>1</td></tr>
+                    <tr id="tt-row-3"><td>0</td><td>1</td><td>1</td><td>1</td></tr>
+                    <tr id="tt-row-4"><td>1</td><td>0</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-5"><td>1</td><td>0</td><td>1</td><td>1</td></tr>
+                    <tr id="tt-row-6"><td>1</td><td>1</td><td>0</td><td>0</td></tr>
+                    <tr id="tt-row-7"><td>1</td><td>1</td><td>1</td><td>1</td></tr>
+                </table>
+            `;
+            
+            // Add all elements to the container
+            circuitDemo.appendChild(input0);
+            circuitDemo.appendChild(input1);
+            circuitDemo.appendChild(select);
+            circuitDemo.appendChild(muxGate);
+            circuitDemo.appendChild(output);
+            circuitDemo.appendChild(wire0);
+            circuitDemo.appendChild(wire1);
+            circuitDemo.appendChild(wireS);
+            circuitDemo.appendChild(wireOut);
+            circuitDemo.appendChild(truthTable);
+            
+            // Create signal animation
+            let signalState = 0;
+            circuitAnimationInterval = setInterval(() => {
+                // Remove existing signals
+                const existingSignals = circuitDemo.querySelectorAll('.signal');
+                existingSignals.forEach(signal => signal.remove());
+                
+                // Reset wire colors
+                wire0.classList.remove('active');
+                wire1.classList.remove('active');
+                wireS.classList.remove('active');
+                wireOut.classList.remove('active');
+                
+                // Reset truth table highlighting
+                for (let i = 0; i < 8; i++) {
+                    document.getElementById(`tt-row-${i}`).classList.remove('highlight');
+                }
+                
+                // Create new signals based on state
+                if (signalState === 0) { // S=0, I0=0, I1=0
+                    createSignal(32, 66, 68, 0, 0, wire0);
+                    createSignal(32, 106, 68, 0, 0, wire1);
+                    createSignal(32, 146, 68, 0, 0, wireS);
+                    document.getElementById('tt-row-0').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 1) { // S=0, I0=0, I1=1
+                    createSignal(32, 66, 68, 0, 0, wire0);
+                    createSignal(32, 106, 68, 0, 1, wire1);
+                    createSignal(32, 146, 68, 0, 0, wireS);
+                    document.getElementById('tt-row-1').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 2) { // S=0, I0=1, I1=0
+                    createSignal(32, 66, 68, 0, 1, wire0);
+                    createSignal(32, 106, 68, 0, 0, wire1);
+                    createSignal(32, 146, 68, 0, 0, wireS);
+                    document.getElementById('tt-row-2').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 3) { // S=0, I0=1, I1=1
+                    createSignal(32, 66, 68, 0, 1, wire0);
+                    createSignal(32, 106, 68, 0, 1, wire1);
+                    createSignal(32, 146, 68, 0, 0, wireS);
+                    document.getElementById('tt-row-3').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 4) { // S=1, I0=0, I1=0
+                    createSignal(32, 66, 68, 0, 0, wire0);
+                    createSignal(32, 106, 68, 0, 0, wire1);
+                    createSignal(32, 146, 68, 0, 1, wireS);
+                    document.getElementById('tt-row-4').classList.add('highlight');
+                    // Output should be 0
+                } else if (signalState === 5) { // S=1, I0=0, I1=1
+                    createSignal(32, 66, 68, 0, 0, wire0);
+                    createSignal(32, 106, 68, 0, 1, wire1);
+                    createSignal(32, 146, 68, 0, 1, wireS);
+                    document.getElementById('tt-row-5').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                } else if (signalState === 6) { // S=1, I0=1, I1=0
+                    createSignal(32, 66, 68, 0, 1, wire0);
+                    createSignal(32, 106, 68, 0, 0, wire1);
+                    createSignal(32, 146, 68, 0, 1, wireS);
+                    document.getElementById('tt-row-6').classList.add('highlight');
+                    // Output should be 0
+                } else { // S=1, I0=1, I1=1
+                    createSignal(32, 66, 68, 0, 1, wire0);
+                    createSignal(32, 106, 68, 0, 1, wire1);
+                    createSignal(32, 146, 68, 0, 1, wireS);
+                    document.getElementById('tt-row-7').classList.add('highlight');
+                    // Output should be 1
+                    setTimeout(() => {
+                        createSignal(160, 106, 120, 0, 1, wireOut);
+                    }, 600);
+                }
+                
+                signalState = (signalState + 1) % 8;
+            }, 2000);
+        }
+
+        /**
+         * Creates a signal that moves along a wire
+         */
+        function createSignal(startX, startY, distance, angle, isActive, wireElement) {
+            const signal = document.createElement('div');
+            signal.className = 'signal';
+            signal.style.left = `${startX}px`;
+            signal.style.top = `${startY}px`;
+            
+            if (isActive) {
+                wireElement.classList.add('active');
+            } else {
+                signal.style.backgroundColor = '#6b7280'; // Gray for inactive
+            }
+            
+            circuitDemo.appendChild(signal);
+            
+            // Animate the signal along the wire
+            let progress = 0;
+            const animation = setInterval(() => {
+                progress += 2;
+                signal.style.left = `${startX + progress}px`;
+                
+                if (progress >= distance) {
+                    clearInterval(animation);
+                    signal.remove();
+                    // Reset wire color after signal passes
+                    setTimeout(() => {
+                        wireElement.classList.remove('active');
+                    }, 100);
+                }
+            }, 10);
+        }
+
         // --- UI Helper Functions ---
 
         /**
@@ -374,11 +1583,40 @@ A multiplexer (MUX) is a fundamental component in digital electronics, often ref
                 loadingSpinner.classList.remove('hidden');
                 userPrompt.disabled = true;
                 imageUpload.disabled = true;
+                
+                // Add typing indicator to chat
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'flex justify-start';
+                typingIndicator.id = 'typing-indicator';
+                
+                const typingBubble = document.createElement('div');
+                typingBubble.className = 'bg-gray-700 p-3 rounded-lg max-w-[80%]';
+                
+                const typingDots = document.createElement('div');
+                typingDots.className = 'typing-indicator';
+                for (let i = 0; i < 3; i++) {
+                    const dot = document.createElement('div');
+                    dot.className = 'typing-dot';
+                    typingDots.appendChild(dot);
+                }
+                
+                typingBubble.appendChild(typingDots);
+                typingIndicator.appendChild(typingBubble);
+                chatLog.appendChild(typingIndicator);
+                
+                // Scroll to bottom
+                chatLog.scrollTop = chatLog.scrollHeight;
             } else {
                 sendButton.classList.remove('hidden');
                 loadingSpinner.classList.add('hidden');
                 userPrompt.disabled = false;
                 imageUpload.disabled = false;
+                
+                // Remove typing indicator
+                const typingIndicator = document.getElementById('typing-indicator');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
             }
         }
 
@@ -415,6 +1653,3 @@ A multiplexer (MUX) is a fundamental component in digital electronics, often ref
     </script>
 </body>
 </html>
-
-
-
