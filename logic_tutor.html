@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Logic Tutor (Gemini API)</title>
+    <!-- Load Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Inter font --><link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for chat log */
+        #chat-log::-webkit-scrollbar {
+            width: 6px;
+        }
+        #chat-log::-webkit-scrollbar-track {
+            background: #2d3748; /* gray-800 */
+        }
+        #chat-log::-webkit-scrollbar-thumb {
+            background: #4a5568; /* gray-600 */
+            border-radius: 3px;
+        }
+        #chat-log::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* gray-500 */
+        }
+        /* Loading spinner animation */
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+        .spinner {
+            animation: spin 1s linear infinite;
+        }
+        /* Chat bubble for generated images */
+        .bot-image-bubble {
+            background-color: #4a5568; /* gray-600 */
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            align-self: flex-start;
+            max-width: 80%;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <!-- Main Chat Container --><div class="w-full max-w-3xl h-[90vh] bg-gray-800 rounded-lg shadow-2xl flex flex-col">
+
+        <!-- Header --><header class="bg-gray-700 p-4 rounded-t-lg shadow-md">
+            <h1 class="text-xl font-bold text-center">Digital Logic Tutor</h1>
+            <p class="text-sm text-gray-300 text-center">Powered by Gemini</p>
+        </header>
+
+        <!-- Chat Log --><main id="chat-log" class="flex-grow p-4 space-y-4 overflow-y-auto">
+            <!-- Initial Bot Message --><div class="flex">
+                <div class="bg-gray-700 text-white p-3 rounded-lg max-w-[80%]">
+                    <p>Hello! I'm your digital logic assistant. Please ask a question. You can also upload an image of a circuit diagram or truth table for analysis.</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- Image Preview Area --><div id="image-preview-container" class="p-2 px-4 border-t border-b border-gray-700 hidden items-center justify-between">
+            <div class="flex items-center gap-2">
+                <img id="image-preview" src="" alt="Image preview" class="w-12 h-12 object-cover rounded-md border border-gray-600">
+                <span id="image-preview-name" class="text-sm text-gray-400"></span>
+            </div>
+            <button id="remove-image-btn" class="text-gray-400 hover:text-white" aria-label="Remove image">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                </svg>
+            </button>
+        </div>
+
+        <!-- Input Area --><footer class="flex-shrink-0 p-4 border-t border-gray-700 flex items-center space-x-3">
+            <!-- Image Upload Button --><label for="image-upload" class="flex-shrink-0 p-2 text-gray-400 hover:text-white cursor-pointer rounded-full hover:bg-gray-700" aria-label="Upload image">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+            </label>
+            <input type="file" id="image-upload" accept="image/*" class="hidden">
+
+            <!-- Text Input --><input type="text" id="user-prompt" class="flex-grow bg-gray-700 text-white rounded-full px-4 py-2 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ask about your circuit or truth table...">
+
+            <!-- Send Button / Loading Spinner --><button id="send-button" class="flex-shrink-0 bg-blue-600 text-white p-2 rounded-full hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+            </button>
+            <div id="loading-spinner" class="spinner w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full hidden"></div>
+        </footer>
+    </div>
+
+    <script type="module">
+        // --- DOM Elements ---
+        const chatLog = document.getElementById('chat-log');
+        const userPrompt = document.getElementById('user-prompt');
+        const sendButton = document.getElementById('send-button');
+        const imageUpload = document.getElementById('image-upload');
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreview = document.getElementById('image-preview');
+        const imagePreviewName = document.getElementById('image-preview-name');
+        const removeImageBtn = document.getElementById('remove-image-btn');
+        const loadingSpinner = document.getElementById('loading-spinner');
+
+        // --- API & State ---
+        // IMPORTANT: Leave apiKey as "" - it will be handled by the environment
+        const apiKey = "AIzaSyApwMXx30KoZVDGsEEKgEm6gTO2NQsfEe0"; 
+        const imageAnalysisModel = "gemini-2.5-flash-preview-09-2025";
+        
+        let currentImageBase64 = null;
+        let currentImageMimeType = null;
+        let isLoading = false;
+
+        // --- System Instruction for Analysis Model ---
+        const systemPrompt = `You are an expert in digital electronics and logic design. Your primary goal is to act as a digital logic tutor.
+You will receive a user's text prompt and potentially an image of a circuit diagram or a truth table.
+Your responses should be structured, clear, detailed, and professional, similar to how an expert would explain concepts or corrections, much like a helpful and structured AI assistant (e.g., ChatGPT style).
+
+**Here's your process:**
+
+1.  **Analyze Input:** Carefully examine the user's text and any provided image.
+2.  **Determine Correctness:** Assess if the circuit or truth table in the image is correct based on the user's question or implied intent.
+3.  **Construct Response:**
+    * **Start with a clear verdict:** "Analysis: Correct" or "Analysis: Incorrect".
+    * **Provide a detailed explanation:**
+        * If **correct**: Explain *why* it's correct concisely.
+        * If **incorrect**:
+            * State clearly that you cannot generate a corrected image, but you can provide a detailed text-based explanation of the error.
+            * Clearly state *what* is wrong.
+            * Explain *why* it's wrong, referencing specific components, logic rules, or truth table entries.
+            * Provide the correct logic or expected outcome **as text**.
+            * **If a truth table is wrong, provide the correct truth table formatted clearly in plain text.**
+            * **If a logic expression is wrong, provide the correct expression in plain text (e.g., "F = A AND B").**
+    * Use headings, bullet points, or numbered lists for clarity when explanations are complex.
+4.  **Formatting:**
+    * **DO NOT** use markdown (like \`**bold**\` or \`_italic_\`).
+    * **DO NOT** use LaTeX math symbols (like \`$...$\`). Use plain text for all expressions (e.g., "F = A AND B" or "F = AB + C").
+    * Use standard line breaks for structure.
+
+**Example Conversation Flow:**
+
+**User:** "Is this the right truth table for an AND gate?" [Image: A 2-input XOR truth table]
+
+**Your Response:**
+Analysis: Incorrect
+
+The truth table you've provided is for an XOR (Exclusive OR) gate, not an AND gate. I cannot generate a corrected image, but I can provide the correct truth table for you below.
+
+* An XOR gate outputs '1' when its inputs are different (one '0' and one '1').
+* An AND gate, on the other hand, outputs '1' only when *all* of its inputs are '1'.
+
+Here is the correct truth table for a 2-input AND gate:
+
+Input A | Input B | Output F
+------------------------------
+0       | 0       | 0
+0       | 1       | 0
+1       | 0       | 0
+1       | 1       | 1
+
+**User:** "Correct AND gate?" [Image: Correct AND gate diagram]
+
+**Your Response:**
+Analysis: Correct
+
+Yes, this is a correct and standard circuit diagram for a 2-input AND gate, using the conventional ANSI/IEEE symbol.
+
+**User:** "What is a multiplexer?"
+
+**Your Response:**
+Analysis: General Information
+
+A multiplexer (MUX) is a fundamental component in digital electronics, often referred to as a "data selector."
+
+* Function: It selects one of several input signals and forwards the selected input to a single output line.
+* Control: The selection is controlled by a separate set of "select" inputs. For 'n' select lines, a MUX can choose from up to 2^n input lines.
+* Analogy: Think of it like a digital switch that directs one of many data paths to a single destination.`;
+
+
+        // --- Event Listeners ---
+        sendButton.addEventListener('click', handleSend);
+        userPrompt.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') handleSend();
+        });
+        imageUpload.addEventListener('change', handleImageUpload);
+        removeImageBtn.addEventListener('click', removeImage);
+
+        // --- Core Functions ---
+
+        /**
+         * Handles the file upload event
+         */
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            // Check file type
+            if (!file.type.startsWith('image/')) {
+                addMessageToChat('bot', 'Sorry, only image files are accepted.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                currentImageBase64 = reader.result.split(',')[1]; // Get just the base64 data
+                currentImageMimeType = file.type;
+                
+                // Show preview
+                imagePreview.src = reader.result;
+                imagePreviewName.textContent = file.name;
+                imagePreviewContainer.classList.remove('hidden');
+                imagePreviewContainer.classList.add('flex');
+            };
+            reader.readAsDataURL(file);
+
+            // Clear the input value to allow re-uploading the same file
+            event.target.value = null;
+        }
+
+        /**
+         * Removes the currently selected image
+         */
+        function removeImage() {
+            currentImageBase64 = null;
+            currentImageMimeType = null;
+            imagePreview.src = '';
+            imagePreviewName.textContent = '';
+            imagePreviewContainer.classList.add('hidden');
+            imagePreviewContainer.classList.remove('flex');
+        }
+
+        /**
+         * Handles sending the user's message (text and/or image)
+         */
+        async function handleSend() {
+            const promptText = userPrompt.value.trim();
+
+            if (isLoading) return;
+            if (!promptText && !currentImageBase64) {
+                // Don't send empty messages
+                return;
+            }
+
+            setLoading(true);
+
+            // Add user message to chat
+            addMessageToChat('user', promptText, currentImageBase64 ? `data:${currentImageMimeType};base64,${currentImageBase64}` : null);
+
+            // Store and clear current inputs
+            const imageToSend = currentImageBase64;
+            const mimeTypeToSend = currentImageMimeType;
+            userPrompt.value = '';
+            removeImage();
+
+            try {
+                // --- Step 1: Get Analysis from Gemini ---
+                const analysisText = await getGeminiAnalysis(promptText, imageToSend, mimeTypeToSend);
+                
+                let cleanText = analysisText;
+
+                // Add the bot's text analysis to chat
+                if (cleanText) {
+                    // Convert newlines to <br> tags for proper display
+                    const formattedText = cleanText.replace(/\n/g, '<br>');
+
+                    addMessageToChat('bot', formattedText);
+                }
+
+            } catch (error) {
+                console.error('Error in handleSend:', error);
+                addMessageToChat('bot', `Sorry, I encountered an error: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /**
+         * Fetches analysis from the Gemini multimodal model
+         */
+        async function getGeminiAnalysis(promptText, imageBase66, mimeType) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${imageAnalysisModel}:generateContent?key=${apiKey}`;
+
+            const parts = [];
+            if (promptText) {
+                parts.push({ text: promptText });
+            }
+            if (imageBase66 && mimeType) {
+                parts.push({
+                    inlineData: {
+                        mimeType: mimeType,
+                        data: imageBase66
+                    }
+                });
+            } else if (imageBase66 && !mimeType) {
+                 parts.push({
+                    inlineData: {
+                        mimeType: "image/png", // Default fallback
+                        data: imageBase66
+                    }
+                });
+            }
+
+            const payload = {
+                contents: [{ role: "user", parts: parts }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            const response = await fetchWithBackoff(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await response.json();
+            
+            if (result.candidates && result.candidates[0].content.parts[0].text) {
+                return result.candidates[0].content.parts[0].text;
+            } else {
+                console.error("Gemini Analysis Error Response:", result);
+                throw new Error(result.error?.message || 'Failed to get a valid response from Gemini analysis.');
+            }
+        }
+
+        // --- UI Helper Functions ---
+
+        /**
+         * Adds a message to the chat log
+         * @param {'user' | 'bot'} role
+         * @param {string} text
+         * @param {string | null} imageSrc (Data URL)
+         */
+        function addMessageToChat(role, text, imageSrc = null) {
+            const messageWrapper = document.createElement('div');
+            messageWrapper.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'}`;
+
+            const messageBubble = document.createElement('div');
+            messageBubble.className = `p-3 rounded-lg max-w-[80%] ${role === 'user' ? 'bg-blue-600' : 'bg-gray-700'}`;
+            
+            if (imageSrc) {
+                const img = document.createElement('img');
+                img.src = imageSrc;
+                img.alt = role === 'user' ? 'User upload' : 'Bot response';
+                img.className = 'rounded-md max-w-full h-auto mb-2';
+                messageBubble.appendChild(img);
+            }
+
+            if (text) {
+                const p = document.createElement('p');
+                p.innerHTML = text; // Use innerHTML to render text with <br> tags
+                messageBubble.appendChild(p);
+            }
+            
+            messageWrapper.appendChild(messageBubble);
+            chatLog.appendChild(messageWrapper);
+
+            // Scroll to bottom
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        /**
+         * Toggles the loading state of the UI
+         */
+        function setLoading(newLoadingState) {
+            isLoading = newLoadingState; // Update the global isLoading variable
+            if (newLoadingState) { // Use the new state for the logic
+                sendButton.classList.add('hidden');
+                loadingSpinner.classList.remove('hidden');
+                userPrompt.disabled = true;
+                imageUpload.disabled = true;
+            } else {
+                sendButton.classList.remove('hidden');
+                loadingSpinner.classList.add('hidden');
+                userPrompt.disabled = false;
+                imageUpload.disabled = false;
+            }
+        }
+
+        /**
+         * A robust fetch wrapper with exponential backoff for retries.
+         */
+        async function fetchWithBackoff(url, options, maxRetries = 5, baseDelay = 1000) {
+            let attempt = 0;
+            while (attempt < maxRetries) {
+                try {
+                    const response = await fetch(url, options);
+                    if (response.ok) {
+                        return response;
+                    }
+                    // Only retry on specific server errors or rate limiting
+                    if (response.status === 429 || response.status >= 500) {
+                         throw new Error(`Retryable error: ${response.status}`);
+                    } else {
+                        // Don't retry on client errors like 400
+                        const errorData = await response.json();
+                        throw new Error(errorData.error?.message || `HTTP error! status: ${response.status}`);
+                    }
+                } catch (error) {
+                    attempt++;
+                    if (attempt >= maxRetries) {
+                        throw error; // Max retries reached
+                    }
+                    const delay = baseDelay * Math.pow(2, attempt) + Math.random() * 1000;
+                    // Do not log retry attempts to the console
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+    </script>
+</body>
+</html>
+
